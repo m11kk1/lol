@@ -1,0 +1,51 @@
+import sys
+import requests
+import socket
+import threading
+
+def print_hello_world():
+    print("Hello, World!")
+
+def print_public_ip():
+    try:
+        response = requests.get("https://api.ipify.org?format=json")
+        data = response.json()
+        ip_address = data["ip"]
+        print("Public IP Address:", ip_address)
+        return ip_address
+    except requests.RequestException:
+        print("Failed to fetch the public IP address.")
+        return None
+
+def send_ip_to_server(ip_address, server_address):
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        client_socket.connect(server_address)
+        client_socket.sendall(ip_address.encode())
+        client_socket.close()
+    except ConnectionRefusedError:
+        print("Failed to connect to the server.")
+
+def main():
+    server_address = ('192.168.56.1', 1234)
+
+    # Start a background thread to send IP addresses to the server
+    def background_thread():
+        while True:
+            user_input = input("Enter a command (hello, ip, or exit): ")
+
+            if user_input == "hello":
+                print_hello_world()
+            elif user_input == "ip":
+                ip_address = print_public_ip()
+                if ip_address:
+                    threading.Thread(target=send_ip_to_server, args=(ip_address, server_address)).start()
+            elif user_input == "exit":
+                break
+            else:
+                print("Invalid command.")
+
+    threading.Thread(target=background_thread).start()
+
+if __name__ == "__main__":
+    main()
